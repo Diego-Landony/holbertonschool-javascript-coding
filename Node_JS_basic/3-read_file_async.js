@@ -1,31 +1,36 @@
 const fs = require('fs');
 
-async function countStudents(path) {
-  let data;
-  try {
-    data = await fs.promises.readFile(path, 'utf8');
-  } catch (error) {
-    throw new Error('Cannot load the database');
-  }
-  const students = data.split('\n')
-    .map((student) => student.split(','))
-    .filter((student) => student.length === 4 && student[0] !== 'firstname')
-    .map((student) => ({
-      firstName: student[0],
-      lastName: student[1],
-      age: student[2],
-      field: student[3],
-    }));
-  const csStudents = students
-    .filter((student) => student.field === 'CS')
-    .map((student) => student.firstName);
-  const sweStudents = students
-    .filter((student) => student.field === 'SWE')
-    .map((student) => student.firstName);
-  console.log(`Number of students: ${students.length}`);
-  console.log(`Number of students in CS: ${csStudents.length}. List: ${csStudents.join(', ')}`);
-  console.log(`Number of students in SWE: ${sweStudents.length}. List: ${sweStudents.join(', ')}`);
-  return { students, csStudents, sweStudents };
+function countStudents(path) {
+  const promise = (res, rej) => {
+    fs.readFile(path, 'utf8', (error, data) => {
+      if (error) rej(Error('Cannot load the database'));
+      const messages = [];
+      let message;
+      const content = data.toString().split('\n');
+      let students = content.filter((item) => item);
+      students = students.map((item) => item.split(','));
+      const nStudents = students.length ? students.length - 1 : 0;
+      message = `Number of students: ${nStudents}`;
+      console.log(message);
+      messages.push(message);
+      const subjects = {};
+      for (const i in students) {
+        if (i !== 0) {
+          if (!subjects[students[i][3]]) subjects[students[i][3]] = [];
+          subjects[students[i][3]].push(students[i][0]);
+        }
+      }
+      delete subjects.subject;
+      for (const key of Object.keys(subjects)) {
+        message = `Number of students in ${key}: ${
+          subjects[key].length
+        }. List: ${subjects[key].join(', ')}`;
+        console.log(message);
+        messages.push(message);
+      }
+      res(messages);
+    });
+  };
+  return new Promise(promise);
 }
-
 module.exports = countStudents;
